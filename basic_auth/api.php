@@ -1,5 +1,6 @@
 <?php
     require 'connection.php';
+    require 'validasi.php';
 
     // set header api 
     header('content-Type: application/json');
@@ -23,9 +24,11 @@
     $auth_decode = base64_decode($auth);
     list($username, $password) = explode(':', $auth_decode);
 
-    // query untuk cek user di database 
+    $username = validasi_input($username);
+    $password = validasi_input($password);
 
-    $query = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
+    // query untuk cek user di database 
+    $query = "SELECT * FROM users WHERE username = '$username'";
     $hasil = mysqli_query($conn, $query);
 
     // cek hasil 
@@ -33,23 +36,32 @@
         // berhasil
         $user = mysqli_fetch_assoc($hasil);
 
-        $respon = [
-            'status' => true,
-            'message' => 'Login berhasil',
-            'data' => [
-                'user_id' => $user['id'],
-                'usernamse' => $user['username'],
-                'email' => $user['email'],
-                'waktu_akses' => date('Y-m-d H:i:s')
-            ]
-        ];
-
-        http_response_code(200);
+        // varifikasi password 
+        if(password_verify($password, $user['password'])){
+            $respon = [
+                'status' => true,
+                'message' => 'Login berhasil',
+                'data' => [
+                    'user_id' => $user['id'],
+                    'usernamse' => $user['username'],
+                    'email' => $user['email'],
+                    'waktu_akses' => date('Y-m-d H:i:s')
+                ]
+            ];
+    
+            http_response_code(200);
+        }else{
+            $respon = [
+                'status' => false,
+                'message' => 'Password salah'
+            ];
+            http_response_code(401);
+        }
     }else{
         // gagal 
         $respon = [
             'status' => false,
-            'message' => 'Username atau password salah'
+            'message' => 'Username tidak ditemukan'
         ];
         http_response_code(401);
     }
